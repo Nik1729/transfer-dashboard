@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transfer Movement Dashboard</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f4f0;--sf:#fff;--sf2:#f8f7f4;
+  --bd:rgba(0,0,0,.09);--bd2:rgba(0,0,0,.18);
+  --tx:#1a1a18;--tx2:#5f5e5a;--tx3:#888780;
+  --teal:#1D9E75;--tl:#E1F5EE;--tm:#9FE1CB;--td:#085041;
+  --amb:#BA7517;--al:#FAEEDA;--ad:#633806;
+  --red:#A32D2D;--red2:#E24B4A;
+  --blu:#185FA5;--bl:#E6F1FB;
+  --pur:#534AB7;
+  --grn:#3B6D11;--gl:#EAF3DE;
+  --r:8px;--rl2:12px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--tx);font-size:14px;line-height:1.5;min-width:960px}
+
+/* HEADER */
+.hdr{background:var(--sf);border-bottom:.5px solid var(--bd);padding:0 22px;display:flex;align-items:center;gap:12px;height:50px;position:sticky;top:0;z-index:100}
+.hdr-ic{width:28px;height:28px;background:var(--teal);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.hdr-ic i{color:#fff;font-size:16px}
+.hdr-title{font-size:15px;font-weight:500}
+
+/* FILTER BAR */
+.fbar{background:var(--sf);border-bottom:.5px solid var(--bd);padding:10px 22px;display:flex;align-items:flex-start;gap:10px;position:sticky;top:50px;z-index:90;flex-wrap:wrap}
+.fgrp{display:flex;flex-direction:column;gap:3px;min-width:130px;flex:1;max-width:165px}
+.fgrp-date{display:flex;flex-direction:column;gap:3px;min-width:190px;max-width:220px}
+.flbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--teal);margin-bottom:1px}
+
+/* Date inputs */
+.date-row{display:flex;gap:4px;align-items:center}
+.date-row input[type=date]{flex:1;padding:5px 6px;border:.5px solid var(--bd);border-radius:var(--r);font-size:11px;background:var(--sf2);color:var(--tx);min-width:0}
+.date-row input[type=date]:focus{outline:none;border-color:var(--teal)}
+.date-row span{font-size:10px;color:var(--tx3);flex-shrink:0}
+.date-clr{background:none;border:none;cursor:pointer;color:var(--tx3);font-size:15px;padding:0;line-height:1;flex-shrink:0;opacity:.45;transition:opacity .12s}
+.date-clr:hover{opacity:.9}
+.date-presets{display:flex;gap:3px;margin-top:3px}
+.date-presets button{flex:1;font-size:10px;padding:3px 2px;border:.5px solid var(--bd);background:var(--sf2);border-radius:4px;cursor:pointer;color:var(--tx2);white-space:nowrap;transition:all .12s}
+.date-presets button.active{background:var(--tl);border-color:var(--teal);color:var(--td);font-weight:600}
+
+/* Search-select filter */
+.sdf{position:relative}
+.sdf-wrap{position:relative;display:flex;align-items:center}
+.sdf-icon{position:absolute;left:8px;font-size:12px;color:var(--tx3);pointer-events:none;z-index:1}
+.sdf-inp{width:100%;padding:5px 28px 5px 26px;border:.5px solid var(--bd);border-radius:var(--r);background:var(--sf2);font-size:12px;color:var(--tx);transition:border-color .12s}
+.sdf-inp:focus{outline:none;border-color:var(--teal);background:#fff}
+.sdf-inp.has-val{border-color:var(--teal);background:var(--tl);color:var(--td);font-weight:500}
+.sdf-inp.has-val::placeholder{color:var(--td)}
+.sdf-x{position:absolute;right:7px;background:none;border:none;cursor:pointer;font-size:15px;line-height:1;padding:0;color:var(--tx3);opacity:.4;transition:opacity .12s;z-index:1}
+.sdf-x:hover{opacity:1}
+.sdf-x.active{color:var(--teal);opacity:1}
+.sdf-drop{position:absolute;top:calc(100% + 3px);left:0;right:0;min-width:100%;background:var(--sf);border:.5px solid var(--bd2);border-radius:var(--r);z-index:200;max-height:200px;overflow-y:auto;display:none;box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.sdf-drop.open{display:block}
+.sdf-opt{padding:7px 11px;font-size:12px;cursor:pointer;color:var(--tx);white-space:nowrap}
+.sdf-opt:hover{background:var(--sf2)}
+.sdf-opt.sel{color:var(--teal);font-weight:500;background:var(--tl)}
+.sdf-opt.dim{color:var(--tx3)}
+.sdf-none{padding:8px 11px;font-size:12px;color:var(--tx3);font-style:italic}
+
+/* Reset button */
+.fbar-reset{align-self:flex-start;margin-top:17px;padding:5px 12px;font-size:11px;border:.5px solid var(--bd2);background:var(--sf);border-radius:var(--r);cursor:pointer;color:var(--tx2);display:flex;align-items:center;gap:4px;white-space:nowrap}
+.fbar-reset:hover{background:var(--sf2)}
+
+/* MAIN */
+.main{padding:16px 22px}
+
+/* KPI ROW */
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px}
+.kpi{background:var(--sf);border:.5px solid var(--bd);border-radius:var(--rl2);padding:12px 14px;border-left:3px solid transparent;transition:box-shadow .15s,transform .1s,border .15s}
+.kpi.click{cursor:pointer}
+.kpi.click:hover{box-shadow:0 3px 10px rgba(0,0,0,.10);transform:translateY(-1px)}
+.kpi.c-teal{border-left-color:var(--teal)}
+.kpi.c-amb{border-left-color:var(--amb)}
+.kpi.c-red{border-left-color:var(--red)}
+.kpi.c-grn{border-left-color:var(--grn)}
+.kpi.c-blu{border-left-color:var(--blu)}
+.kpi.c-pur{border-left-color:var(--pur)}
+.kpi.c-teal.on{border:2px solid var(--teal);box-shadow:0 0 0 3px rgba(29,158,117,.14)}
+.kpi.c-amb.on{border:2px solid var(--amb);box-shadow:0 0 0 3px rgba(186,117,23,.14)}
+.kpi.c-red.on{border:2px solid var(--red);box-shadow:0 0 0 3px rgba(163,45,45,.14)}
+.kpi.c-grn.on{border:2px solid var(--grn);box-shadow:0 0 0 3px rgba(59,109,17,.14)}
+.kpi.c-pur.on{border:2px solid var(--pur);box-shadow:0 0 0 3px rgba(83,74,183,.14)}
+.kpi-lbl{font-size:11px;color:var(--tx2);margin-bottom:4px;display:flex;align-items:center;gap:4px}
+.kpi-lbl i{font-size:13px}
+.kpi-val{font-size:22px;font-weight:500;line-height:1.1}
+.kpi-sub{font-size:10px;color:var(--tx3);margin-top:2px}
+
+/* CHARTS */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:16px}
+.cc{background:var(--sf);border:.5px solid var(--bd);border-radius:var(--rl2);padding:14px 16px}
+.ct{font-size:13px;font-weight:500;margin-bottom:2px}
+.cs{font-size:11px;color:var(--tx3);margin-bottom:10px}
+.cleg{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;font-size:11px;color:var(--tx2)}
+.cleg span{display:flex;align-items:center;gap:4px}
+.cleg .d{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+
+/* TABLE */
+.tc{background:var(--sf);border:.5px solid var(--bd);border-radius:var(--rl2);overflow:hidden}
+.th{padding:11px 16px;border-bottom:.5px solid var(--bd);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.tt{font-size:13px;font-weight:500;display:flex;align-items:center;gap:6px}
+.tbl-badge{font-size:11px;padding:2px 10px;border-radius:4px;background:var(--tl);color:var(--td);font-weight:500;display:none;align-items:center;gap:6px}
+.tbl-badge.vis{display:flex}
+.tbl-badge button{background:none;border:none;cursor:pointer;color:var(--td);font-size:13px;padding:0;line-height:1}
+.b-sm{font-size:11px;color:var(--tx2);background:var(--sf2);border:.5px solid var(--bd);border-radius:5px;padding:3px 9px}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{padding:8px 12px;text-align:left;font-size:11px;font-weight:500;color:var(--tx2);background:var(--sf2);border-bottom:.5px solid var(--bd);white-space:nowrap;cursor:pointer;user-select:none}
+thead th:hover{color:var(--tx)}
+tbody tr{border-bottom:.5px solid var(--bd);cursor:pointer}
+tbody tr:hover{background:var(--sf2)}
+tbody tr.exp-row{background:#f0fdf8}
+tbody tr:last-child:not(.drill-row){border-bottom:none}
+td{padding:8px 12px;white-space:nowrap}
+td.mu{color:var(--tx2)}
+.b{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
+.b-cl{background:var(--tl);color:var(--td)}.b-tr{background:var(--al);color:var(--ad)}
+.b-rt{background:var(--bl);color:var(--blu);font-size:10px}
+.flag{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:var(--red);font-weight:500}
+.drill-row td{padding:0}
+.drill-in{padding:13px 16px;background:#f0fdf8;border-top:1px solid var(--tm);display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.df .dfl{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--tx3);margin-bottom:2px}
+.df .dfv{font-size:13px;font-weight:500;color:var(--tx)}
+.drill-foot{padding:4px 16px 12px;background:#f0fdf8}
+
+/* MODAL */
+.mo{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.42);z-index:300;align-items:center;justify-content:center}
+.mo.open{display:flex}
+.md{background:var(--sf);border-radius:var(--rl2);padding:22px;max-width:700px;width:92vw;max-height:84vh;overflow-y:auto}
+.mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.mttl{font-size:15px;font-weight:500}
+.mcls{background:none;border:none;cursor:pointer;font-size:20px;color:var(--tx2);padding:4px;line-height:1}
+.tl-wrap{display:flex;align-items:center;overflow-x:auto;padding-bottom:6px;margin-bottom:14px}
+.tl-stop{display:flex;flex-direction:column;align-items:center;min-width:88px}
+.tl-stop .tsl{font-size:10px;color:var(--tx3);text-align:center;margin-bottom:5px;white-space:nowrap}
+.tl-stop .tsn{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.tl-stop .tsn i{font-size:14px;color:#fff}
+.tl-stop .tsna{font-size:11px;font-weight:500;color:var(--tx);margin-top:5px;text-align:center}
+.tl-stop .tsnd{font-size:10px;color:var(--tx3);margin-top:1px}
+.tl-arr{width:34px;height:2px;background:var(--tm);flex-shrink:0;position:relative;margin-bottom:16px}
+.tl-arr::after{content:'';position:absolute;right:-5px;top:-4px;border:5px solid transparent;border-left-color:var(--tm)}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-ic"><i class="ti ti-arrows-transfer-up" aria-hidden="true"></i></div>
+  <span class="hdr-title">Transfer Movement Dashboard</span>
+</header>
+
+<div class="fbar">
+  <!-- Date -->
+  <div class="fgrp-date">
+    <div class="flbl">Date range</div>
+    <div class="date-row">
+      <input type="date" id="inp-df" onchange="clearPresets();applyFilters()">
+      <span>→</span>
+      <input type="date" id="inp-dt" onchange="clearPresets();applyFilters()">
+      <button class="date-clr" onclick="clearDate()" title="Clear date">×</button>
+    </div>
+    <div class="date-presets">
+      <button id="p-today" onclick="setPreset('today')">Today</button>
+      <button id="p-month" onclick="setPreset('month')">This month</button>
+      <button id="p-year"  onclick="setPreset('year')">This year</button>
+    </div>
+  </div>
+
+  <!-- Transfer No -->
+  <div class="fgrp">
+    <div class="flbl">Transfer No.</div>
+    <div class="sdf">
+      <div class="sdf-wrap">
+        <i class="sdf-icon ti ti-search" aria-hidden="true"></i>
+        <input class="sdf-inp" id="inp-tno" type="text" placeholder="Search…" autocomplete="off"
+          oninput="onInput('tno')" onfocus="onFocus('tno')" onblur="onBlur('tno')" onkeydown="onKey(event,'tno')">
+        <button class="sdf-x" id="x-tno" onclick="clearF('tno')" tabindex="-1" title="Clear">×</button>
+      </div>
+      <div class="sdf-drop" id="drop-tno"></div>
+    </div>
+  </div>
+
+  <!-- From -->
+  <div class="fgrp">
+    <div class="flbl">From location</div>
+    <div class="sdf">
+      <div class="sdf-wrap">
+        <i class="sdf-icon ti ti-map-pin" aria-hidden="true"></i>
+        <input class="sdf-inp" id="inp-from" type="text" placeholder="Search…" autocomplete="off"
+          oninput="onInput('from')" onfocus="onFocus('from')" onblur="onBlur('from')" onkeydown="onKey(event,'from')">
+        <button class="sdf-x" id="x-from" onclick="clearF('from')" tabindex="-1" title="Clear">×</button>
+      </div>
+      <div class="sdf-drop" id="drop-from"></div>
+    </div>
+  </div>
+
+  <!-- To -->
+  <div class="fgrp">
+    <div class="flbl">To location</div>
+    <div class="sdf">
+      <div class="sdf-wrap">
+        <i class="sdf-icon ti ti-map-pin-filled" aria-hidden="true"></i>
+        <input class="sdf-inp" id="inp-to" type="text" placeholder="Search…" autocomplete="off"
+          oninput="onInput('to')" onfocus="onFocus('to')" onblur="onBlur('to')" onkeydown="onKey(event,'to')">
+        <button class="sdf-x" id="x-to" onclick="clearF('to')" tabindex="-1" title="Clear">×</button>
+      </div>
+      <div class="sdf-drop" id="drop-to"></div>
+    </div>
+  </div>
+
+  <!-- Item -->
+  <div class="fgrp">
+    <div class="flbl">Item</div>
+    <div class="sdf">
+      <div class="sdf-wrap">
+        <i class="sdf-icon ti ti-package" aria-hidden="true"></i>
+        <input class="sdf-inp" id="inp-item" type="text" placeholder="Search…" autocomplete="off"
+          oninput="onInput('item')" onfocus="onFocus('item')" onblur="onBlur('item')" onkeydown="onKey(event,'item')">
+        <button class="sdf-x" id="x-item" onclick="clearF('item')" tabindex="-1" title="Clear">×</button>
+      </div>
+      <div class="sdf-drop" id="drop-item"></div>
+    </div>
+  </div>
+
+  <!-- Lot No -->
+  <div class="fgrp">
+    <div class="flbl">Lot No.</div>
+    <div class="sdf">
+      <div class="sdf-wrap">
+        <i class="sdf-icon ti ti-tag" aria-hidden="true"></i>
+        <input class="sdf-inp" id="inp-lot" type="text" placeholder="Search…" autocomplete="off"
+          oninput="onInput('lot')" onfocus="onFocus('lot')" onblur="onBlur('lot')" onkeydown="onKey(event,'lot')">
+        <button class="sdf-x" id="x-lot" onclick="clearF('lot')" tabindex="-1" title="Clear">×</button>
+      </div>
+      <div class="sdf-drop" id="drop-lot"></div>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="fgrp">
+    <div class="flbl">Status</div>
+    <div class="sdf">
+      <div class="sdf-wrap">
+        <i class="sdf-icon ti ti-circle-dot" aria-hidden="true"></i>
+        <input class="sdf-inp" id="inp-status" type="text" placeholder="Search…" autocomplete="off"
+          oninput="onInput('status')" onfocus="onFocus('status')" onblur="onBlur('status')" onkeydown="onKey(event,'status')">
+        <button class="sdf-x" id="x-status" onclick="clearF('status')" tabindex="-1" title="Clear">×</button>
+      </div>
+      <div class="sdf-drop" id="drop-status"></div>
+    </div>
+  </div>
+
+  <button class="fbar-reset" onclick="resetAll()"><i class="ti ti-refresh" aria-hidden="true"></i> Reset</button>
+</div>
+
+<div class="main">
+  <!-- KPI: Total | In-transit | Delayed | Closed | Total vol | Transit loss -->
+  <div class="kpi-row">
+    <div class="kpi c-teal click" id="kpi-all" onclick="kpiClick('all')">
+      <div class="kpi-lbl"><i class="ti ti-truck-delivery"></i>Total transfers</div>
+      <div class="kpi-val" id="k-total">—</div>
+    </div>
+    <div class="kpi c-amb click" id="kpi-transit" onclick="kpiClick('transit')">
+      <div class="kpi-lbl"><i class="ti ti-clock"></i>In-transit</div>
+      <div class="kpi-val" id="k-tr">—</div>
+      <div class="kpi-sub">open transfers</div>
+    </div>
+    <div class="kpi c-red click" id="kpi-delayed" onclick="kpiClick('delayed')">
+      <div class="kpi-lbl"><i class="ti ti-alert-triangle"></i>Delayed (&gt;5d)</div>
+      <div class="kpi-val" id="k-dl">—</div>
+      <div class="kpi-sub">flagged transfers</div>
+    </div>
+    <div class="kpi c-grn click" id="kpi-closed" onclick="kpiClick('closed')">
+      <div class="kpi-lbl"><i class="ti ti-circle-check"></i>Closed orders</div>
+      <div class="kpi-val" id="k-closed">—</div>
+      <div class="kpi-sub">completed</div>
+    </div>
+    <div class="kpi c-blu">
+      <div class="kpi-lbl"><i class="ti ti-weight"></i>Total volume</div>
+      <div class="kpi-val" id="k-vol">—</div>
+      <div class="kpi-sub">dispatched (MT)</div>
+    </div>
+    <div class="kpi c-pur click" id="kpi-loss" onclick="kpiClick('loss')">
+      <div class="kpi-lbl"><i class="ti ti-scale"></i>Transit loss</div>
+      <div class="kpi-val" id="k-loss">—</div>
+      <div class="kpi-sub">actual variance (KG)</div>
+    </div>
+  </div>
+
+  <!-- Charts 2x2 -->
+  <div class="charts-grid">
+    <!-- Volume by location -->
+    <div class="cc">
+      <div class="ct">Volume by location (MT)</div>
+      <div class="cs">Dispatched vs received per location</div>
+      <div class="cleg">
+        <span><span class="d" style="background:#185FA5"></span>Dispatched</span>
+        <span><span class="d" style="background:#9FE1CB"></span>Received</span>
+      </div>
+      <div style="position:relative;height:210px"><canvas id="ch-loc" role="img" aria-label="Volume by location"></canvas></div>
+    </div>
+
+    <!-- Transit loss by route: horizontal bar -->
+    <div class="cc">
+      <div class="ct">Transit loss by route (KG)</div>
+      <div class="cs">Actual loss from Lots data, per route</div>
+      <div class="cleg">
+        <span><span class="d" style="background:#E24B4A"></span>Transit loss (KG)</span>
+      </div>
+      <div style="position:relative;" id="loss-wrap"><canvas id="ch-loss" role="img" aria-label="Transit loss by route"></canvas></div>
+    </div>
+
+    <!-- Ageing -->
+    <div class="cc">
+      <div class="ct">In-transit ageing (days)</div>
+      <div class="cs">Orders by days in transit, grouped by route</div>
+      <div class="cleg" id="age-leg"></div>
+      <div style="position:relative;height:210px"><canvas id="ch-age" role="img" aria-label="Ageing by route"></canvas></div>
+    </div>
+
+    <!-- Volume by route (replaces dispatch vs received bar) -->
+    <div class="cc">
+      <div class="ct">Transfer volume by route (MT)</div>
+      <div class="cs">Total net weight per route, split by status</div>
+      <div class="cleg">
+        <span><span class="d" style="background:#1D9E75"></span>Closed</span>
+        <span><span class="d" style="background:#BA7517"></span>In Transit</span>
+      </div>
+      <div style="position:relative;height:210px"><canvas id="ch-route" role="img" aria-label="Volume by route"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="tc">
+    <div class="th">
+      <span class="tt"><i class="ti ti-table" style="font-size:14px"></i>Transfer records</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="tbl-badge" id="tbl-badge">
+          <span id="tbl-badge-lbl"></span>
+          <button onclick="kpiClick('all')">×</button>
+        </div>
+        <span class="b-sm" id="tbl-cnt">0 records</span>
+      </div>
+    </div>
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th onclick="sortBy('transfer_no')">Transfer No ↕</th>
+          <th onclick="sortBy('transfer_date')">Date ↕</th>
+          <th onclick="sortBy('from_location')">Route ↕</th>
+          <th onclick="sortBy('item')">Item ↕</th>
+          <th onclick="sortBy('lot_no')">Lot No ↕</th>
+          <th onclick="sortBy('net')" style="text-align:right">Net KG ↕</th>
+          <th onclick="sortBy('quantity')" style="text-align:right">Bags ↕</th>
+          <th onclick="sortBy('status')">Status ↕</th>
+          <th onclick="sortBy('days_in_transit')">Days in transit ↕</th>
+          <th onclick="sortBy('transit_loss')" style="text-align:right">Transit loss ↕</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Lot Journey Modal -->
+<div class="mo" id="lot-modal" onclick="if(event.target===this)closeLotModal()">
+  <div class="md">
+    <div class="mh">
+      <div class="mttl" id="modal-title">Lot journey</div>
+      <button class="mcls" onclick="closeLotModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+var RAW=[{"transfer_id":1,"transfer_no":"STR-00766","transfer_date":"2026-06-12","from_location":"Coorg","to_location":"Mangalore","from_storage":"WH 1","to_storage":"WH 3","item":"RC-AB","item_desc":"XYZ","lot_no":"0001-LOT-001","status":"In Transit","quantity":12,"gross":12374,"tare":0,"net":12374,"uom":"Bags of 60 KG","description":"","product_type":"Robusta","transferred_by":"ABC","trailer_id":"KA19AA0236","transfer_price":4510,"currency":"INR","transit_loss":0},{"transfer_id":2,"transfer_no":"STR-00761","transfer_date":"2026-06-08","from_location":"Mangalore","to_location":"Bangalore","from_storage":"WH 2","to_storage":"WH 4","item":"RC-A","item_desc":"ABC","lot_no":"0001-LOT-002","status":"In Transit","quantity":81,"gross":4866,"tare":0,"net":4866,"uom":"Bags of 60 KG","description":"FDN 001 Truck No : 123456","product_type":"Arabica","transferred_by":"XYZ","trailer_id":"KA19AA0232","transfer_price":475.21,"currency":"INR","transit_loss":0},{"transfer_id":3,"transfer_no":"STR-00753","transfer_date":"2026-06-04","from_location":"Bangalore","to_location":"Coorg","from_storage":"WH 5","to_storage":"WH 1","item":"PL-AA","item_desc":"XYZ","lot_no":"0001-LOT-003","status":"In Transit","quantity":167,"gross":9988.1,"tare":0,"net":9988.1,"uom":"Bags of 60 KG","description":"FDN 002 Truck No : 123457","product_type":"Arabica","transferred_by":"DFE","trailer_id":"KA19AA0233","transfer_price":773.46,"currency":"INR","transit_loss":0},{"transfer_id":4,"transfer_no":"STR-00747","transfer_date":"2026-05-29","from_location":"Coorg","to_location":"Bangalore","from_storage":"WH 6","to_storage":"WH 2","item":"RC-AB","item_desc":"ABC","lot_no":"0001-LOT-001","status":"In Transit","quantity":400,"gross":19855,"tare":0,"net":19855,"uom":"Bags of 60 KG","description":"FDN 003 Truck No : 123458","product_type":"Robusta","transferred_by":"ABC","trailer_id":"KA19AA0234","transfer_price":479,"currency":"INR","transit_loss":0},{"transfer_id":5,"transfer_no":"STR-00745","transfer_date":"2026-05-29","from_location":"Coorg","to_location":"Mangalore","from_storage":"WH 1","to_storage":"WH 3","item":"MM-AA","item_desc":"DEF","lot_no":"0001-LOT-005","status":"In Transit","quantity":1,"gross":16,"tare":0,"net":16,"uom":"Bags of 60 KG","description":"","product_type":"Arabica","transferred_by":"DFE","trailer_id":"KA19AA0235","transfer_price":597.05,"currency":"INR","transit_loss":0},{"transfer_id":6,"transfer_no":"STR-00746","transfer_date":"2026-05-29","from_location":"Mangalore","to_location":"Coorg","from_storage":"WH 8","to_storage":"WH 4","item":"PL-AA","item_desc":"GHY","lot_no":"0001-LOT-003","status":"Closed","quantity":1,"gross":16,"tare":0,"net":16,"uom":"Bags of 60 KG","description":"","product_type":"Arabica","transferred_by":"ABC","trailer_id":"KA19AA0236","transfer_price":597.05,"currency":"INR","transit_loss":0},{"transfer_id":7,"transfer_no":"STR-00734","transfer_date":"2026-05-28","from_location":"Mangalore","to_location":"Bangalore","from_storage":"WH 9","to_storage":"WH 5","item":"RC-AAA","item_desc":"UTE","lot_no":"0001-LOT-007","status":"Closed","quantity":3,"gross":2867,"tare":0,"net":2867,"uom":"Bags of 60 KG","description":"","product_type":"Robusta","transferred_by":"ABC","trailer_id":"KA19AA0237","transfer_price":464.38,"currency":"INR","transit_loss":0},{"transfer_id":8,"transfer_no":"STR-00732","transfer_date":"2026-05-28","from_location":"Bangalore","to_location":"Mangalore","from_storage":"WH 10","to_storage":"WH 6","item":"RC-AA","item_desc":"ABC","lot_no":"0001-LOT-008","status":"Closed","quantity":5,"gross":5346,"tare":0,"net":5346,"uom":"Bags of 60 KG","description":"","product_type":"Arabica","transferred_by":"XYZ","trailer_id":"KA19AA0238","transfer_price":485.87,"currency":"INR","transit_loss":10},{"transfer_id":9,"transfer_no":"STR-00726","transfer_date":"2026-05-28","from_location":"Coorg","to_location":"Mangalore","from_storage":"WH 3","to_storage":"WH 7","item":"RC-AB","item_desc":"ABC","lot_no":"0001-LOT-001","status":"In Transit","quantity":180,"gross":9000,"tare":0,"net":9000,"uom":"Bags of 60 KG","description":"FDN 004","product_type":"Arabica","transferred_by":"XYZ","trailer_id":"KA19AA0239","transfer_price":250.32,"currency":"INR","transit_loss":0},{"transfer_id":10,"transfer_no":"STR-00727","transfer_date":"2026-05-28","from_location":"Mangalore","to_location":"Coorg","from_storage":"WH 4","to_storage":"WH 9","item":"RC-RAW","item_desc":"XYZ","lot_no":"0001-LOT-010","status":"In Transit","quantity":38,"gross":1670,"tare":0,"net":1670,"uom":"Bags of 60 KG","description":"FDN 005","product_type":"Robusta","transferred_by":"DFE","trailer_id":"KA19AA0240","transfer_price":250.32,"currency":"INR","transit_loss":0},{"transfer_id":11,"transfer_no":"STR-00707","transfer_date":"2026-05-19","from_location":"Mangalore","to_location":"Bangalore","from_storage":"WH 5","to_storage":"WH 7","item":"MM-AA","item_desc":"DEF","lot_no":"0001-LOT-011","status":"Closed","quantity":264,"gross":13194,"tare":0,"net":13194,"uom":"Bags of 60 KG","description":"FDN 006","product_type":"Robusta","transferred_by":"DFE","trailer_id":"KA19AA0241","transfer_price":597.05,"currency":"INR","transit_loss":10},{"transfer_id":12,"transfer_no":"STR-00708","transfer_date":"2026-05-19","from_location":"Coorg","to_location":"Bangalore","from_storage":"WH 7","to_storage":"WH 6","item":"PL-AA","item_desc":"GHY","lot_no":"0001-LOT-003","status":"In Transit","quantity":46,"gross":2300,"tare":0,"net":2300,"uom":"Bags of 60 KG","description":"FDN 007","product_type":"Arabica","transferred_by":"ABC","trailer_id":"KA19AA0242","transfer_price":597.05,"currency":"INR","transit_loss":0},{"transfer_id":13,"transfer_no":"STR-00697","transfer_date":"2026-05-12","from_location":"Coorg","to_location":"Bangalore","from_storage":"WH 2","to_storage":"WH 9","item":"PL-RAW","item_desc":"GHY","lot_no":"0001-LOT-013","status":"Closed","quantity":20,"gross":862,"tare":0,"net":862,"uom":"Bags of 60 KG","description":"FDN 008","product_type":"Robusta","transferred_by":"DFE","trailer_id":"KA19AA0243","transfer_price":479,"currency":"INR","transit_loss":40},{"transfer_id":14,"transfer_no":"STR-00699","transfer_date":"2026-05-12","from_location":"Bangalore","to_location":"Mangalore","from_storage":"WH 4","to_storage":"WH 3","item":"PL-RAW","item_desc":"ABC","lot_no":"0001-LOT-014","status":"Closed","quantity":25,"gross":1250,"tare":0,"net":1250,"uom":"Bags of 60 KG","description":"FDN 009","product_type":"Arabica","transferred_by":"DFE","trailer_id":"KA19AA0244","transfer_price":479,"currency":"INR","transit_loss":60},{"transfer_id":15,"transfer_no":"STR-00694","transfer_date":"2026-05-12","from_location":"Coorg","to_location":"Mangalore","from_storage":"WH 9","to_storage":"WH 1","item":"AC-AB","item_desc":"DEF","lot_no":"0001-LOT-015","status":"Closed","quantity":167,"gross":9978.1,"tare":0,"net":9978.1,"uom":"Bags of 60 KG","description":"FDN 010","product_type":"Robusta","transferred_by":"XYZ","trailer_id":"KA19AA0245","transfer_price":541,"currency":"INR","transit_loss":25},{"transfer_id":16,"transfer_no":"STR-00686","transfer_date":"2026-04-29","from_location":"Mangalore","to_location":"Coorg","from_storage":"WH 10","to_storage":"WH 2","item":"RP-RAW","item_desc":"GHY","lot_no":"0001-LOT-016","status":"Closed","quantity":20,"gross":983,"tare":0,"net":983,"uom":"Bags of 60 KG","description":"FDN 011","product_type":"Arabica","transferred_by":"XYZ","trailer_id":"KA19AA0246","transfer_price":380.44,"currency":"INR","transit_loss":80}];
+
+var TODAY=new Date('2026-06-15');
+var DATA=RAW.map(function(r){
+  var days=r.status==='In Transit'?Math.round((TODAY-new Date(r.transfer_date))/86400000):0;
+  return Object.assign({},r,{
+    route:r.from_location+' \u2192 '+r.to_location,
+    days_in_transit:days, is_delayed:days>5,
+    received_kg:r.net-(r.transit_loss||0)
+  });
+});
+
+// Field map for filters
+var FMAP={tno:'transfer_no',from:'from_location',to:'to_location',item:'item',lot:'lot_no',status:'status'};
+// Current selected value per filter key ('' = no filter)
+var FVAL={tno:'',from:'',to:'',item:'',lot:'',status:''};
+// Derived state
+var filteredData=DATA.slice(), tableData=DATA.slice();
+var kpiMode='all', sortKey='transfer_date', sortDir=-1, expandedRow=null;
+var charts={}, dropFocIdx={};
+// Track whether a drop blur should be ignored (mousedown on option)
+var ignoreBlur={};
+
+/* ── DATE ── */
+var MIN_DATE=DATA.map(function(r){return r.transfer_date;}).sort()[0];
+var MAX_DATE=DATA.map(function(r){return r.transfer_date;}).sort().reverse()[0];
+
+function initDate(){
+  document.getElementById('inp-df').value=MIN_DATE;
+  document.getElementById('inp-dt').value=MAX_DATE;
+}
+function clearDate(){ initDate(); clearPresets(); applyFilters(); }
+function setPreset(p){
+  clearPresets();
+  document.getElementById('p-'+p).classList.add('active');
+  var y=TODAY.getFullYear(),m=String(TODAY.getMonth()+1).padStart(2,'0'),ts=TODAY.toISOString().slice(0,10);
+  document.getElementById('inp-dt').value=ts;
+  if(p==='today') document.getElementById('inp-df').value=ts;
+  else if(p==='month') document.getElementById('inp-df').value=y+'-'+m+'-01';
+  else if(p==='year') document.getElementById('inp-df').value=y+'-01-01';
+  applyFilters();
+}
+function clearPresets(){ ['today','month','year'].forEach(function(x){document.getElementById('p-'+x).classList.remove('active');}); }
+
+/* ── CASCADING DROPDOWN ── */
+// Get unique values for a filter key from a given dataset
+function getUniq(key, dataset){
+  var field=FMAP[key], seen={};
+  return (dataset||DATA).map(function(r){return r[field];})
+    .filter(function(v){return seen[v]?false:(seen[v]=true);}).sort();
+}
+
+// Get the "eligible" dataset for a given filter key:
+// Apply all OTHER active filters, to show what's possible for THIS filter
+function eligibleFor(key){
+  var df=document.getElementById('inp-df').value;
+  var dt=document.getElementById('inp-dt').value;
+  return DATA.filter(function(r){
+    if(df&&r.transfer_date<df) return false;
+    if(dt&&r.transfer_date>dt) return false;
+    // apply all filters EXCEPT the current key
+    var keys=Object.keys(FMAP);
+    for(var i=0;i<keys.length;i++){
+      var k=keys[i];
+      if(k===key) continue;
+      if(FVAL[k] && r[FMAP[k]]!==FVAL[k]) return false;
+    }
+    return true;
+  });
+}
+
+function buildDrop(key, query){
+  var allVals=getUniq(key);
+  var eligible=eligibleFor(key);
+  var eligibleVals=getUniq(key, eligible);
+  var eligibleSet={};
+  eligibleVals.forEach(function(v){eligibleSet[v]=true;});
+
+  var q=(query||'').trim().toLowerCase();
+  var displayVals=allVals.filter(function(v){
+    return !q||v.toLowerCase().indexOf(q)!==-1;
+  });
+
+  var availCount=displayVals.filter(function(v){return eligibleSet[v]||FVAL[key]===v;}).length;
+  var totalCount=displayVals.length;
+
+  dropFocIdx[key]=-1;
+  var drop=document.getElementById('drop-'+key);
+  drop.innerHTML='';
+
+  // "X/Y available" header — only show when another filter is active
+  var hasOtherFilter=Object.keys(FVAL).some(function(k){return k!==key&&FVAL[k]!=='';});
+  var hasDateFilter=(document.getElementById('inp-df').value!=='' && document.getElementById('inp-df').value!==MIN_DATE)
+    ||(document.getElementById('inp-dt').value!=='' && document.getElementById('inp-dt').value!==MAX_DATE);
+  if(hasOtherFilter||hasDateFilter){
+    var hdr=document.createElement('div');
+    hdr.style.cssText='padding:5px 11px 4px;font-size:10px;font-style:italic;color:var(--tx3);border-bottom:.5px solid var(--bd);background:var(--sf2)';
+    hdr.textContent=availCount+'/'+totalCount+' available';
+    drop.appendChild(hdr);
+  }
+
+  if(!displayVals.length){
+    var none=document.createElement('div');
+    none.className='sdf-none'; none.textContent='No matches';
+    drop.appendChild(none); return;
+  }
+
+  // Available options first, then greyed unavailable ones
+  var avail=displayVals.filter(function(v){return eligibleSet[v]||FVAL[key]===v;});
+  var unavail=displayVals.filter(function(v){return !eligibleSet[v]&&FVAL[key]!==v;});
+
+  avail.forEach(function(v){
+    var div=document.createElement('div');
+    div.className='sdf-opt'+(FVAL[key]===v?' sel':'');
+    div.textContent=v;
+    div.addEventListener('mousedown',function(e){e.preventDefault();pickVal(key,v);});
+    drop.appendChild(div);
+  });
+
+  unavail.forEach(function(v){
+    var div=document.createElement('div');
+    div.className='sdf-opt';
+    div.style.cssText='color:var(--tx3);cursor:default;opacity:.45';
+    div.textContent=v;
+    // not clickable — no event listener
+    drop.appendChild(div);
+  });
+}
+
+function onFocus(key){
+  buildDrop(key, document.getElementById('inp-'+key).value);
+  document.getElementById('drop-'+key).classList.add('open');
+}
+function onBlur(key){
+  if(ignoreBlur[key]) return;
+  setTimeout(function(){
+    document.getElementById('drop-'+key).classList.remove('open');
+    // restore display value to selected value (or clear if nothing selected)
+    document.getElementById('inp-'+key).value=FVAL[key];
+  },150);
+}
+function onInput(key){
+  var q=document.getElementById('inp-'+key).value;
+  buildDrop(key, q);
+  document.getElementById('drop-'+key).classList.add('open');
+  // If user clears the text, auto-clear the filter
+  if(q==='' && FVAL[key]!==''){
+    FVAL[key]='';
+    syncInputStyle(key);
+    applyFilters();
+  }
+}
+function pickVal(key, val){
+  ignoreBlur[key]=true;
+  FVAL[key]=(FVAL[key]===val)?'':val; // toggle off if same
+  document.getElementById('inp-'+key).value=FVAL[key];
+  document.getElementById('drop-'+key).classList.remove('open');
+  syncInputStyle(key);
+  applyFilters();
+  setTimeout(function(){ignoreBlur[key]=false;},200);
+}
+function clearF(key){
+  FVAL[key]='';
+  document.getElementById('inp-'+key).value='';
+  syncInputStyle(key);
+  applyFilters();
+}
+function syncInputStyle(key){
+  var inp=document.getElementById('inp-'+key);
+  var xBtn=document.getElementById('x-'+key);
+  if(FVAL[key]){
+    inp.classList.add('has-val');
+    xBtn.classList.add('active');
+  } else {
+    inp.classList.remove('has-val');
+    xBtn.classList.remove('active');
+  }
+}
+function onKey(e, key){
+  var drop=document.getElementById('drop-'+key);
+  var opts=drop.querySelectorAll('.sdf-opt');
+  if(!opts.length) return;
+  if(e.key==='ArrowDown'){
+    dropFocIdx[key]=Math.min((dropFocIdx[key]||0)+1,opts.length-1);
+    opts.forEach(function(o,i){o.style.background=i===dropFocIdx[key]?'var(--sf2)':'';});
+  } else if(e.key==='ArrowUp'){
+    dropFocIdx[key]=Math.max((dropFocIdx[key]||0)-1,0);
+    opts.forEach(function(o,i){o.style.background=i===dropFocIdx[key]?'var(--sf2)':'';});
+  } else if(e.key==='Enter'&&dropFocIdx[key]>=0){
+    pickVal(key, opts[dropFocIdx[key]].textContent.trim());
+  } else if(e.key==='Escape'){
+    drop.classList.remove('open');
+    document.getElementById('inp-'+key).value=FVAL[key];
+  }
+}
+
+/* ── APPLY FILTERS ── */
+function applyFilters(){
+  var df=document.getElementById('inp-df').value;
+  var dt=document.getElementById('inp-dt').value;
+  filteredData=DATA.filter(function(r){
+    if(df&&r.transfer_date<df) return false;
+    if(dt&&r.transfer_date>dt) return false;
+    if(FVAL.tno    && r.transfer_no   !==FVAL.tno)    return false;
+    if(FVAL.from   && r.from_location !==FVAL.from)   return false;
+    if(FVAL.to     && r.to_location   !==FVAL.to)     return false;
+    if(FVAL.item   && r.item          !==FVAL.item)   return false;
+    if(FVAL.lot    && r.lot_no        !==FVAL.lot)    return false;
+    if(FVAL.status && r.status        !==FVAL.status) return false;
+    return true;
+  });
+  expandedRow=null;
+  updateKPIs();
+  buildTableData();
+  renderTable();
+  renderCharts();
+}
+function resetAll(){
+  Object.keys(FVAL).forEach(function(k){FVAL[k]='';document.getElementById('inp-'+k).value='';syncInputStyle(k);});
+  initDate(); clearPresets(); kpiMode='all';
+  ['all','transit','delayed','closed'].forEach(function(m){var el=document.getElementById('kpi-'+m);if(el)el.classList.remove('on');});
+  applyFilters();
+}
+
+/* ── KPI CLICK ── */
+function kpiClick(mode){
+  kpiMode=(kpiMode===mode&&mode!=='all')?'all':mode;
+  ['all','transit','delayed','closed','loss'].forEach(function(m){
+    var el=document.getElementById('kpi-'+m); if(!el) return;
+    if(kpiMode===m&&m!=='all') el.classList.add('on'); else el.classList.remove('on');
+  });
+  expandedRow=null; buildTableData(); renderTable();
+}
+function buildTableData(){
+  tableData=filteredData.filter(function(r){
+    if(kpiMode==='transit') return r.status==='In Transit';
+    if(kpiMode==='delayed') return r.is_delayed;
+    if(kpiMode==='closed')  return r.status==='Closed';
+    if(kpiMode==='loss')    return (r.transit_loss||0)>0;
+    return true;
+  });
+  var badge=document.getElementById('tbl-badge');
+  var lbls={transit:'In Transit',delayed:'Delayed (>5d)',closed:'Closed',loss:'With Transit Loss'};
+  if(kpiMode!=='all'){badge.classList.add('vis');document.getElementById('tbl-badge-lbl').textContent='Showing: '+lbls[kpiMode];}
+  else badge.classList.remove('vis');
+}
+
+/* ── KPIs ── */
+function fN(v){return Number(v).toLocaleString('en-IN',{maximumFractionDigits:1});}
+function fMT(kg){return (kg/1000).toFixed(2);}
+function updateKPIs(){
+  var sAll={},sCl={},tr=0,dl=0,vol=0,loss=0;
+  filteredData.forEach(function(r){
+    sAll[r.transfer_no]=true;
+    if(r.status==='Closed') sCl[r.transfer_no]=true;
+    if(r.status==='In Transit') tr++;
+    if(r.is_delayed) dl++;
+    vol+=r.net; loss+=(r.transit_loss||0);
+  });
+  document.getElementById('k-total').textContent=Object.keys(sAll).length;
+  document.getElementById('k-tr').textContent=tr;
+  document.getElementById('k-dl').textContent=dl;
+  document.getElementById('k-closed').textContent=Object.keys(sCl).length;
+  document.getElementById('k-vol').textContent=fMT(vol)+' MT';
+  document.getElementById('k-loss').textContent=fN(loss)+' KG';
+}
+
+/* ── TABLE ── */
+function sortBy(k){
+  if(sortKey===k) sortDir*=-1; else{sortKey=k;sortDir=1;}
+  tableData.sort(function(a,b){return typeof a[k]==='number'?(a[k]-b[k])*sortDir:String(a[k]).localeCompare(String(b[k]))*sortDir;});
+  renderTable();
+}
+function renderTable(){
+  document.getElementById('tbl-cnt').textContent=tableData.length+' records';
+  var tb=document.getElementById('tbody');
+  if(!tableData.length){tb.innerHTML='<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--tx3)">No records match current filters</td></tr>';return;}
+  var h='';
+  tableData.forEach(function(r,i){
+    var isExp=expandedRow===i;
+    var sb=r.status==='Closed'
+      ?'<span class="b b-cl"><i class="ti ti-check" style="font-size:10px"></i>Closed</span>'
+      :'<span class="b b-tr"><i class="ti ti-clock" style="font-size:10px"></i>In Transit</span>';
+    var dayTxt=r.days_in_transit>0
+      ?(r.is_delayed?'<span class="flag"><i class="ti ti-alert-triangle" style="font-size:11px"></i>'+r.days_in_transit+'d</span>'
+        :'<span style="color:var(--tx2);font-size:12px">'+r.days_in_transit+'d</span>')
+      :'<span style="color:var(--tx3)">—</span>';
+    var lossTxt=r.transit_loss>0
+      ?'<span style="color:var(--red);font-size:12px;font-weight:500">-'+fN(r.transit_loss)+' KG</span>'
+      :'<span style="color:var(--tx3)">—</span>';
+    h+='<tr onclick="toggleRow('+i+')" class="'+(isExp?'exp-row':'')+'">'
+      +'<td style="font-weight:500;color:var(--td)">'+r.transfer_no+'</td>'
+      +'<td class="mu">'+r.transfer_date+'</td>'
+      +'<td><span class="b b-rt">'+r.from_location+' \u2192 '+r.to_location+'</span></td>'
+      +'<td style="font-weight:500">'+r.item+'</td>'
+      +'<td class="mu">'+r.lot_no+'</td>'
+      +'<td style="text-align:right">'+fN(r.net)+'</td>'
+      +'<td style="text-align:right" class="mu">'+r.quantity+'</td>'
+      +'<td>'+sb+'</td>'
+      +'<td>'+dayTxt+'</td>'
+      +'<td style="text-align:right">'+lossTxt+'</td>'
+      +'<td style="color:var(--teal)"><i class="ti '+(isExp?'ti-chevron-up':'ti-chevron-down')+'" style="font-size:13px"></i></td>'
+      +'</tr>';
+    if(isExp){
+      h+='<tr class="drill-row"><td colspan="11">'
+        +'<div class="drill-in">'
+        +'<div class="df"><div class="dfl">Transfer No.</div><div class="dfv">'+r.transfer_no+'</div></div>'
+        +'<div class="df"><div class="dfl">Lot No.</div><div class="dfv" style="cursor:pointer;color:var(--teal)" onclick="showLotJourney(\''+r.lot_no+'\',event)">'+r.lot_no+' <i class="ti ti-external-link" style="font-size:11px"></i></div></div>'
+        +'<div class="df"><div class="dfl">Item</div><div class="dfv">'+r.item+' · '+r.item_desc+'</div></div>'
+        +'<div class="df"><div class="dfl">Product type</div><div class="dfv">'+(r.product_type||'—')+'</div></div>'
+        +'<div class="df"><div class="dfl">Trailer ID</div><div class="dfv">'+(r.trailer_id||'—')+'</div></div>'
+        +'<div class="df"><div class="dfl">Unit measure</div><div class="dfv">'+(r.uom||'—')+'</div></div>'
+        +'<div class="df"><div class="dfl">Route</div><div class="dfv">'+r.from_location+' ('+r.from_storage+') \u2192 '+r.to_location+' ('+r.to_storage+')</div></div>'
+        +'<div class="df"><div class="dfl">Transferred by</div><div class="dfv">'+(r.transferred_by||'—')+'</div></div>'
+        +'<div class="df"><div class="dfl">Dispatched KG</div><div class="dfv">'+fN(r.gross)+'</div></div>'
+        +'<div class="df"><div class="dfl">Transit loss</div><div class="dfv" style="color:var(--red)">'+(r.transit_loss>0?'-'+fN(r.transit_loss)+' KG':'—')+'</div></div>'
+        +'<div class="df"><div class="dfl">Days in transit</div><div class="dfv">'+(r.days_in_transit>0?r.days_in_transit+'d'+(r.is_delayed?' ⚠':''):'—')+'</div></div>'
+        +'<div class="df"><div class="dfl">Transfer price</div><div class="dfv">'+r.currency+' '+fN(r.transfer_price)+'/bag</div></div>'
+        +'</div>'
+        +'<div class="drill-foot"><button onclick="showLotJourney(\''+r.lot_no+'\',event)" style="font-size:12px;color:var(--teal);background:none;border:.5px solid var(--teal);padding:5px 12px;border-radius:6px;cursor:pointer"><i class="ti ti-route" style="font-size:12px;vertical-align:-1px;margin-right:4px"></i>View full lot journey</button></div>'
+        +'</td></tr>';
+    }
+  });
+  tb.innerHTML=h;
+}
+function toggleRow(i){expandedRow=expandedRow===i?null:i;renderTable();}
+
+/* ── LOT MODAL ── */
+function showLotJourney(lot,e){
+  if(e) e.stopPropagation();
+  var moves=DATA.filter(function(r){return r.lot_no===lot;}).sort(function(a,b){return a.transfer_date.localeCompare(b.transfer_date);});
+  document.getElementById('modal-title').textContent='Lot journey · '+lot;
+  var tl='<div class="tl-wrap">';
+  moves.forEach(function(m,i){
+    if(i===0) tl+='<div class="tl-stop"><div class="tsl">Origin</div><div class="tsn" style="background:var(--blu)"><i class="ti ti-building-warehouse"></i></div><div class="tsna">'+m.from_location+'</div><div class="tsnd">'+m.from_storage+'</div></div>';
+    var col=m.status==='Closed'?'var(--teal)':m.is_delayed?'var(--red)':'var(--amb)';
+    var ic=m.status==='Closed'?'ti-check':m.is_delayed?'ti-alert-triangle':'ti-clock';
+    tl+='<div class="tl-arr"></div><div class="tl-stop"><div class="tsl">'+m.transfer_date+'</div><div class="tsn" style="background:'+col+'"><i class="ti '+ic+'"></i></div><div class="tsna">'+m.to_location+'</div><div class="tsnd">'+m.to_storage+' · '+m.transfer_no+'</div></div>';
+  });
+  tl+='</div>';
+  var tbl='<table style="width:100%;font-size:12px;border-collapse:collapse"><thead><tr>'
+    +['Transfer No','Date','Route','Net KG','Bags','Status','Days','Transit Loss'].map(function(hh){return '<th style="padding:7px 10px;text-align:left;border-bottom:.5px solid var(--bd);font-size:11px;color:var(--tx2)">'+hh+'</th>';}).join('')
+    +'</tr></thead><tbody>';
+  moves.forEach(function(m){
+    tbl+='<tr style="border-bottom:.5px solid var(--bd)">'
+      +'<td style="padding:7px 10px;font-weight:500;color:var(--td)">'+m.transfer_no+'</td>'
+      +'<td style="padding:7px 10px;color:var(--tx2)">'+m.transfer_date+'</td>'
+      +'<td style="padding:7px 10px">'+m.from_location+' \u2192 '+m.to_location+'</td>'
+      +'<td style="padding:7px 10px;text-align:right">'+fN(m.net)+'</td>'
+      +'<td style="padding:7px 10px;text-align:right">'+m.quantity+'</td>'
+      +'<td style="padding:7px 10px"><span class="b '+(m.status==='Closed'?'b-cl':'b-tr')+'">'+m.status+'</span></td>'
+      +'<td style="padding:7px 10px">'+(m.days_in_transit>0?m.days_in_transit+'d':'—')+'</td>'
+      +'<td style="padding:7px 10px;color:var(--red);text-align:right">'+(m.transit_loss>0?'-'+fN(m.transit_loss)+' KG':'—')+'</td>'
+      +'</tr>';
+  });
+  tbl+='</tbody></table>';
+  var totLoss=moves.reduce(function(s,m){return s+(m.transit_loss||0);},0);
+  document.getElementById('modal-body').innerHTML=
+    '<div style="background:#f0fdf8;border-radius:var(--r);padding:13px 15px;margin-bottom:14px">'
+    +'<div style="font-size:11px;font-weight:600;color:var(--td);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="ti ti-route" style="font-size:14px"></i>Movement timeline</div>'
+    +tl+'</div>'+tbl
+    +'<div style="margin-top:13px;padding-top:13px;border-top:.5px solid var(--bd);display:flex;gap:18px;flex-wrap:wrap;font-size:12px">'
+    +'<div><span style="color:var(--tx3)">Item:</span> <strong>'+moves[0].item+'</strong></div>'
+    +'<div><span style="color:var(--tx3)">Product type:</span> <strong>'+moves[0].product_type+'</strong></div>'
+    +'<div><span style="color:var(--tx3)">Total moves:</span> <strong>'+moves.length+'</strong></div>'
+    +'<div><span style="color:var(--tx3)">Total transit loss:</span> <strong style="color:var(--red)">'+fN(totLoss)+' KG</strong></div>'
+    +'</div>';
+  document.getElementById('lot-modal').classList.add('open');
+}
+function closeLotModal(){document.getElementById('lot-modal').classList.remove('open');}
+
+/* ── CHARTS ── */
+var segmentLabel={id:'segmentLabel',afterDatasetsDraw:function(chart){
+  var ctx=chart.ctx;
+  chart.data.datasets.forEach(function(ds,di){
+    var meta=chart.getDatasetMeta(di);
+    if(meta.hidden) return;
+    meta.data.forEach(function(bar,i){
+      var val=ds.data[i];
+      if(!val) return;
+      var barH=Math.abs(bar.base-bar.y);
+      if(barH<14) return;
+      ctx.save();
+      ctx.fillStyle='rgba(255,255,255,0.92)';
+      ctx.font='500 10px -apple-system,sans-serif';
+      ctx.textAlign='center';
+      ctx.textBaseline='middle';
+      ctx.fillText(String(val),bar.x,bar.y+barH/2);
+      ctx.restore();
+    });
+  });
+}};
+
+var RCOLS=['#1D9E75','#185FA5','#BA7517','#534AB7','#D85A30','#888780'];
+function dc(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+var topLabel={id:'topLabel',afterDatasetsDraw:function(chart){
+  var ctx=chart.ctx;
+  chart.data.datasets.forEach(function(ds,di){
+    var meta=chart.getDatasetMeta(di);
+    if(meta.hidden||ds.type==='line') return;
+    meta.data.forEach(function(bar,i){
+      var val=ds.data[i]; if(!val&&val!==0) return;
+      ctx.save(); ctx.fillStyle='#5f5e5a'; ctx.font='500 10px -apple-system,sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='bottom';
+      var txt=val>999?(val/1000).toFixed(1)+'T':String(val);
+      ctx.fillText(txt,bar.x,bar.y-3); ctx.restore();
+    });
+  });
+}};
+
+var stackTotalLabel={id:'stackTotalLabel',afterDatasetsDraw:function(chart){
+  var ctx=chart.ctx;
+  var nDatasets=chart.data.datasets.length;
+  var lastDatasetMeta=chart.getDatasetMeta(nDatasets-1);
+  if(lastDatasetMeta.hidden) return;
+  // For each bar index, sum all datasets and draw total above top-most bar
+  lastDatasetMeta.data.forEach(function(bar,i){
+    var total=0;
+    chart.data.datasets.forEach(function(ds,di){
+      var meta=chart.getDatasetMeta(di);
+      if(!meta.hidden) total+=(ds.data[i]||0);
+    });
+    if(!total) return;
+    ctx.save();
+    ctx.fillStyle='#5f5e5a'; ctx.font='500 10px -apple-system,sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillText(String(total), bar.x, bar.y-3);
+    ctx.restore();
+  });
+}};
+
+function renderCharts(){renderLocation();renderLoss();renderAgeing();renderRouteVol();}
+
+function renderLocation(){
+  dc('loc');
+  var locs={};
+  filteredData.forEach(function(r){
+    if(!locs[r.from_location]) locs[r.from_location]={d:0,rc:0};
+    if(!locs[r.to_location])   locs[r.to_location]  ={d:0,rc:0};
+    locs[r.from_location].d+=r.net/1000;
+    locs[r.to_location].rc+=r.net/1000;
+  });
+  var labs=Object.keys(locs).sort();
+  charts.loc=new Chart(document.getElementById('ch-loc'),{
+    type:'bar',plugins:[topLabel],
+    data:{labels:labs,datasets:[
+      {label:'Dispatched',data:labs.map(function(k){return +locs[k].d.toFixed(2);}),backgroundColor:'#185FA5',borderRadius:4},
+      {label:'Received',  data:labs.map(function(k){return +locs[k].rc.toFixed(2);}),backgroundColor:'#9FE1CB',borderRadius:4}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:22}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return ' '+c.dataset.label+': '+c.raw.toFixed(2)+' MT';}}}},
+      scales:{x:{ticks:{color:'#888780',font:{size:11}},grid:{display:false}},
+              y:{ticks:{color:'#888780',font:{size:11},callback:function(v){return v+'MT'}},grid:{color:'rgba(0,0,0,0.05)'}}}}
+  });
+}
+
+function renderLoss(){
+  dc('loss');
+  var routes={};
+  filteredData.forEach(function(r){
+    if(!routes[r.route]) routes[r.route]=0;
+    routes[r.route]+=(r.transit_loss||0);
+  });
+  // Sort descending by loss, only routes with loss>0
+  var labs=Object.keys(routes).filter(function(k){return routes[k]>0;})
+    .sort(function(a,b){return routes[b]-routes[a];});
+  if(!labs.length){ dc('loss'); return; }
+  var lossVals=labs.map(function(k){return routes[k];});
+  // Height: 60px per bar + padding
+  var wrap=document.getElementById('loss-wrap');
+  wrap.style.height=Math.max(180,labs.length*60+60)+'px';
+  charts.loss=new Chart(document.getElementById('ch-loss'),{
+    type:'bar',
+    data:{labels:labs,datasets:[{
+      label:'Transit loss (KG)',
+      data:lossVals,
+      backgroundColor:'rgba(226,75,74,0.72)',
+      borderColor:'rgba(226,75,74,0.9)',
+      borderWidth:1,
+      borderRadius:4
+    }]},
+    options:{
+      indexAxis:'y',
+      responsive:true,
+      maintainAspectRatio:false,
+      layout:{padding:{right:40,top:4}},
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:function(c){return ' '+c.raw+' KG';}}}
+      },
+      scales:{
+        x:{
+          ticks:{color:'#888780',font:{size:10},callback:function(v){return v+'KG'}},
+          grid:{color:'rgba(0,0,0,0.05)'},
+          border:{display:false}
+        },
+        y:{
+          ticks:{color:'#444441',font:{size:11},padding:4},
+          grid:{display:false},
+          border:{display:false}
+        }
+      }
+    },
+    plugins:[{
+      id:'barValueLabel',
+      afterDatasetsDraw:function(chart){
+        var ctx=chart.ctx;
+        chart.data.datasets.forEach(function(ds,di){
+          var meta=chart.getDatasetMeta(di);
+          if(meta.hidden) return;
+          meta.data.forEach(function(bar,i){
+            var val=ds.data[i]; if(!val) return;
+            ctx.save();
+            ctx.fillStyle='#444441';
+            ctx.font='500 11px -apple-system,sans-serif';
+            ctx.textAlign='left';
+            ctx.textBaseline='middle';
+            ctx.fillText(val, bar.x+6, bar.y);
+            ctx.restore();
+          });
+        });
+      }
+    }]
+  });
+}
+
+function renderAgeing(){
+  dc('age');
+  var seenR={},routes=[];
+  filteredData.forEach(function(r){if(!seenR[r.route]){seenR[r.route]=true;routes.push(r.route);}});
+  routes.sort();
+  var buckets=['0\u20131d','2\u20133d','4\u20135d','>5d'];
+  function bkt(d){return d<=1?0:d<=3?1:d<=5?2:3;}
+  var datasets=routes.map(function(route,i){
+    var data=[0,0,0,0];
+    filteredData.filter(function(r){return r.route===route&&r.days_in_transit>0;}).forEach(function(r){data[bkt(r.days_in_transit)]++;});
+    return{label:route,data:data,backgroundColor:RCOLS[i%RCOLS.length],borderRadius:3};
+  });
+  document.getElementById('age-leg').innerHTML=routes.map(function(r,i){
+    return '<span><span class="d" style="background:'+RCOLS[i%RCOLS.length]+'"></span>'+r+'</span>';
+  }).join('');
+  charts.age=new Chart(document.getElementById('ch-age'),{
+    type:'bar',plugins:[stackTotalLabel,segmentLabel],
+    data:{labels:buckets,datasets:datasets},
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:22}},
+      plugins:{legend:{display:false}},
+      scales:{x:{stacked:true,ticks:{color:'#888780',font:{size:11}},grid:{display:false}},
+              y:{stacked:true,ticks:{color:'#888780',font:{size:11},stepSize:1},grid:{color:'rgba(0,0,0,0.05)'}}}}
+  });
+}
+
+function renderRouteVol(){
+  dc('route');
+  var routes={};
+  filteredData.forEach(function(r){
+    if(!routes[r.route]) routes[r.route]={cl:0,tr:0};
+    if(r.status==='Closed') routes[r.route].cl+=r.net/1000;
+    else routes[r.route].tr+=r.net/1000;
+  });
+  var labs=Object.keys(routes).sort();
+  charts.route=new Chart(document.getElementById('ch-route'),{
+    type:'bar',plugins:[topLabel],
+    data:{labels:labs,datasets:[
+      {label:'Closed',    data:labs.map(function(k){return +routes[k].cl.toFixed(2);}),backgroundColor:'#1D9E75',borderRadius:4},
+      {label:'In Transit',data:labs.map(function(k){return +routes[k].tr.toFixed(2);}),backgroundColor:'#BA7517',borderRadius:4}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:22}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return ' '+c.dataset.label+': '+c.raw.toFixed(2)+' MT';}}}},
+      scales:{x:{ticks:{color:'#888780',font:{size:10}},grid:{display:false}},
+              y:{ticks:{color:'#888780',font:{size:11},callback:function(v){return v+'MT'}},grid:{color:'rgba(0,0,0,0.05)'}}}}
+  });
+}
+
+/* ── INIT ── */
+initDate();
+applyFilters();
+</script>
+</body>
+</html>
